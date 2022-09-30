@@ -34,13 +34,62 @@ First of all, you need to download the data from the Google drive folder: **http
 Load in the data.
 ```{r}
 
+
+list_of_files <- list.files(path = "C:/github/PercAct2022/crossmodal/data_aud",
+                            recursive = TRUE,
+                            pattern = "\\.csv$",
+                            full.names = TRUE)
+
+DF1aud <- readr::read_csv(list_of_files, id = "file_name")
+
+
+list_of_files <- list.files(path = "C:/github/PercAct2022/crossmodal/data_vis",
+                            recursive = TRUE,
+                            pattern = "\\.csv$",
+                            full.names = TRUE)
+
+DF2vis <- readr::read_csv(list_of_files, id = "file_name")
+
+
 ```
 
 Hint: you can use read_bulk() from the readbulk package to load the different csv files into one dataframe (one df for vision, one for audition). 
 
 
 ### Discussion
-Before you start looking at the data, discuss what predictions you have and why. 
+Before you start looking at the data, discuss what predictions you have and why.
+
+congruent dta = faster reaction time
+
+```{r}
+#fixingshit
+
+
+myfazs<-function(x){
+  ifelse(letsee$accuracy==TRUE,FALSE,TRUE)
+}
+
+
+```
+
+
+```{r}
+
+letsee <- DF1aud %>% 
+  filter(subject=="kyp7")
+
+#letsee2 <- letsee %>% 
+ # mutate(across(.cols = ends_with("ccuracy"), ~myfazs(.)))
+
+letsee2 <- letsee %>% 
+mutate(across(.cols = ends_with("ccuracy"), ~ifelse(as.logical(.)==TRUE,FALSE,TRUE)))
+
+
+DF1aud_2 <- merge(letsee2,DF1aud, by = "subject", all.x = TRUE)
+
+
+```
+
 
 
 # Investigation and preperation of the data
