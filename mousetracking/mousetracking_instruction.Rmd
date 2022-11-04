@@ -16,48 +16,109 @@ Call me for help whenever you get stuck (or take a quick look in the solutions f
 
 ### Install packages and load in the data
 ```{r}
-
+pacman::p_load(tidyverse,mousetrap,readbulk)
 ```
 
 ### Turn the data into a mousetrap object
 Take a moment to look at the structure that it created. What are the elements, what information does it provide?
 ```{r}
+file_names <- dir("C:/github/PercAct2022/mousetracking/dog",full.names = T) #where you have your files
 
+your_data_frame <- do.call(rbind,lapply(file_names,read_csv))
+
+d <- read_opensesame( directory = "C:/github/PercAct2022/mousetracking/dog")
+```
+
+```{r}
+m <- mt_import_mousetrap(your_data_frame)
 ```
 
 ### Make a quick plot using the mt_plot() function
 Try to understand what the lines mean and how to “read” the graph. What seems weird about it when you think about how the experiment task looked like?
 ```{r}
+# initial plot
+mt_plot(m)
+
+# specified
+mt_plot(data = m, use = 'trajectories')
 
 ```
 
 ### Make a plot in which the lines are coloured by condition
 The demo-experiment had different trial types for which we have different predictions. Make a plot that distinguishes these two conditions, e.g. by different colors. 
 ```{r}
-
+mt_plot(data = m, use = 'trajectories',color = "Trial_type")
 ```
 
 ### Mirror-symmetric mapping of movements
 Find a function that does a mirror-symmetric mapping of all the movements from the right side to the left side so that all movements overlap. Plot again. What does this function also do?
 ```{r}
+# align the mouse trajectories to one side
+m <- mt_remap_symmetric(
+  m, 
+  use = 'trajectories',
+  remap_xpos = "left"
+  )
 
+# plot again
+mt_plot(
+  m, 
+  use = 'trajectories',
+  color = 'Trial_type'
+  )
+
+# turns the data upside down, so it resembles the actual mouse tracking task
 ```
 
 ### Plot timestamps by xpos
 The standard plotting function shows x and y coordinates. Modify it so you plot timestamps by xpos. What do you see? What is this line in the beginning?
 ```{r}
-
+mt_plot(
+  m, 
+  x = 'timestamps', # modifying the x-axis to plot timestamps
+  y = 'xpos',       # modifying the y-axis to plot the xpos
+  use = 'trajectories',
+  color = 'Trial_type' 
+)
 ```
 
 ### Find a function that removes the initial phase without mouse-movement
 Find a function to remove this “line” and plot the timestamps by xpos again. 
 ```{r}
+d1 <- read_csv("C:/github/PercAct2022/mousetracking/dog/subject-1.csv")
+d2<- read_csv("C:/github/PercAct2022/mousetracking/dog/subject-2.csv")
+d3<- read_csv("C:/github/PercAct2022/mousetracking/dog/subject-3.csv")
+d4<- read_csv("C:/github/PercAct2022/mousetracking/dog/subject-4.csv")
+```
+```{r}
+d4 <- d4 %>% 
+  mutate(initiation_time = ifelse(initiation_time == 0,1,initiation_time),
+         initiation_time_Mouse = ifelse(initiation_time_Mouse == 0,1,initiation_time_Mouse))
 
+
+```
+
+```{r}
+
+m <- mt_exclude_initiation(m,use = "trajectories", timestamps = "timestamps")
+
+mt_plot(
+  m, 
+  x = 'timestamps', # modifying the x-axis to plot timestamps
+  y = 'xpos',       # modifying the y-axis to plot the xpos
+  use = 'trajectories',
+  color = 'Trial_type' 
+  
+)
 ```
 
 **Thought experiment:** If you now plotted x and y coordinates again, what would have changed in the plot? Think first, then try it! 
 ```{r}
-
+mt_plot(
+  m, 
+  use = 'trajectories',
+  color = 'Trial_type'
+  )
 ```
 
 ### Time-normalize the data
