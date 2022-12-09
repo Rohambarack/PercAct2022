@@ -1,0 +1,52 @@
+---
+title: "Untitled"
+author: "Balazs Szabo"
+date: "2022-11-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+remove.packages(c("Rcpp","dplyr","rlang"))
+install.packages(c("Rcpp","dplyr","rlang"))
+library(tidyverse)
+library(brms)
+library(gridExtra)
+library(cmdstanr)
+library(tidymodels)
+library(truncnorm)
+```
+```{r}
+files <- list.files( path ="C:/github/PercAct2022/kinematics_lab/task_1/task1_data", pattern = ".tsv" )
+
+#first one word
+
+dat <- read.table("C:/github/PercAct2022/kinematics_lab/task_1/task1_data/group1_task1.tsv", sep = "", header = F, col.names=c("frames","time","x","y","z"), skip = 11)
+```
+
+```{r}
+ggplot(dat, aes(x =y, y=x)) + 
+  geom_point()
+```
+```{r}
+setwd("C:/github/PercAct2022/kinematics_lab/task_1/task1_data")
+#read all words
+DF <- NULL
+for (i in files){
+  
+dat <- read.table(i, sep = "", header = F, col.names=c("frames","time","x","y","z"), skip = 11)
+dat <- dat %>% 
+  mutate( word = as.numeric(substr(i,6,6)))
+DF <- rbind(DF,dat)
+
+}
+```
+
+```{r}
+
+```
+
+

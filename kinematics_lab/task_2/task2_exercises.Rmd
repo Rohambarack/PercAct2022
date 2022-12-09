@@ -27,7 +27,7 @@ Instead of their parameters, we use some other (often used) parameters for reach
 ### Loading packages
 For today we will be needing two packages, namely signal and tidyverse. Load them in.
 ```{r}
-
+library(signal)
 ```
 
 
@@ -35,6 +35,8 @@ For today we will be needing two packages, namely signal and tidyverse. Load the
 To illustrate how you can analyse motion data, 2-3 example files will be used. They can be found in the data folder. Start with just one file (ansuini_8475_3.csv), a grasping action; then later repeat the whole process with the other file (ansuini_8475_4.csv), a throwing action, so we can compare those two different actions. 
 In the end, you can also add a third file (ansuini_8475_2.csv), a pouring action. Note that in this file, there are missing data; however, as they occur later than our section of interest and will, in fact, be filtered out, we can ignore this. 
 ```{r}
+
+ans1 <- read_csv("C:/github/PercAct2022/kinematics_lab/task_2/data/ansuini_8475_3.csv")
 
 ```
 
@@ -46,22 +48,48 @@ To inspect the data create a plot that fulfills the following:
 Hint: use geom_line for each of the three markers
 ```{r}
 
+ans1 %>% 
+  ggplot(aes(x=frame))+
+  geom_line(aes(y=wristX,color="wrist"))+
+  geom_line(aes(y=thumbX,color="thumb"))+
+  geom_line(aes(y=indexX,color="index"))
+
 ```
 
 #### Cleaning the data
 From the plot you have just made you might see that the frame does not start at 0. Modify the frame variable in such a way that it starts at 0 and increases with 1 for each frame recorded.
 ```{r}
 
+framefix <- rep(0:(length(ans1$frame)-1))
+
+ans1_ff <- ans1
+ans1_ff$frame <- framefix
+
 ```
 
 Do the same for the timestamp. However, let's clean up the timestamp a little so that we can more easily interpret the numbers. Make a new column called 'time' that is the timestamp divided by 1000000. This will give us the time in seconds. (To check: Our sample rate is 300 Hz, so after 300 frames, we should have reached one second.)
 ```{r}
+ans1_ff <- ans1_ff %>% 
+  mutate(time = timestamp/1000000)
+
+ans1_ff <- ans1_ff %>% 
+  mutate(time = time -ans1_ff$time[1])
 
 ```
 
 Similarly, let's make the position data more meaningful. By dividing by 10, we get the values in cm. Do this for all the four markers and all three dimensions. (Although we only use index finger and thumb in the following.)
 ```{r}
 
+ans1_ff <- ans1_ff %>% 
+  mutate(wristX = wristX/10,
+         wristY = wristY/10,
+         wristZ = wristZ/10,
+         thumbX = thumbX/10,
+         thumbY = thumbX/10,
+         thumbZ = thumbX/10,
+         indexX = indexX/10,
+         indexY = indexY/10,
+         indexZ = indexZ/10,)
 ```
 
 
@@ -70,6 +98,13 @@ Now lets move on to the cool and a bit more tricky part - calculating velocity, 
 
 ### Velocity of the index finger
 Remind yourself of how to calculate the velocities. Create a new column in the data set which contains the velocity of the index finger along the x-axis.
+
+```{r}
+ans1_ff <- ans1_ff %>% 
+  mutate(indexVel = c(0, diff(indexX)/diff(time)))
+
+
+```
 
 **Hints:** 
 * Velocity for the first point can be set to 0. Question: Why is such a trick needed? 
@@ -82,6 +117,10 @@ Remind yourself of how to calculate the velocities. Create a new column in the d
 #### Plot the velocity over time! 
 ```{r}
 
+ans1_ff %>% 
+  ggplot(aes(x = time))+
+  geom_line(aes(y=indexVel))
+
 ```
 
 #### Filter the velocity
@@ -92,6 +131,18 @@ Create a new column with the filtered velocity. Plot again after filtering and o
 Afterwards, repeat these two steps to play around with different filter cutoffs. Observe what changing the value does to the raw data. 
 ```{r}
 
+ans1_ff <- ans1_ff %>% 
+  mutate( indexVel_f = filtfilt(butter(1,.1,type = "low",), indexVel),
+          indexVel_f2 = filtfilt(butter(2,.5,type = "low",), indexVel),
+          indexVel_f3 = filtfilt(butter(3,.9,type = "low",), indexVel))
+
+
+ans1_ff %>% 
+  ggplot(aes(x = time))+
+  geom_line(aes(y=indexVel, color = "unfiltered"))+
+  geom_line(aes(y=indexVel_f, color = "filter1"))+
+  geom_line(aes(y=indexVel_f2, color = "filter2"))+
+  geom_line(aes(y=indexVel_f3, color = "filter3"))
 ```
 
 ```{r}
@@ -102,15 +153,28 @@ Afterwards, repeat these two steps to play around with different filter cutoffs.
 Now calculate the acceleration of the index finger along the x-axis using the filtered velocity. 
 ```{r}
 
+ans1_ff <- ans1_ff %>% 
+  mutate(indexAcc = diff(indexVel_f)/time)
+
+ans1_ff %>% 
+  ggplot(aes(x = time))+
+  geom_line(aes(y=indexAcc, color = "acc"))
+ans1_ff$indexAcc[1]<- 0
+
 ```
 
 Now filter the acceleration. You can normally use the same filter parameters as for velocity. 
 ```{r}
-
+ans1_ff <- ans1_ff %>% 
+  mutate( indexAcc_f = filtfilt(butter(1,.1,type = "low",), indexAcc))
 ```
 
 Plot both the filtered and unfiltered.
 ```{r}
+ans1_ff %>% 
+  ggplot(aes(x = time))+
+  geom_line(aes(y=indexAcc, color = "unfiltered"))+
+  geom_line(aes(y=indexAcc_f, color = "filter1"))
 
 ```
 
@@ -121,33 +185,52 @@ Plot both the filtered and unfiltered.
 ### Velocity of the index finger in 3D space
 Now that we have understood velocity and acceleration in one dimension, let's make it three-dimensional. Find the formula for calculating velocity in three dimensional space, and use it to do so.
 ```{r}
+#derivate all, add together
+
+
+ans1_ff <- ans1_ff %>% 
+  mutate( indexvel_all = diff(indexX)/time + diff(indexY)/time + diff(indexZ)/ time)
+
+ans1_ff$indexvel_all[1]<- 0
+
 
 ```
 
 Filter it!
 ```{r}
-
+ans1_ff <- ans1_ff %>% 
+  mutate( indexvel_all_f = filtfilt(butter(2,.05,type = "low",), indexvel_all))
 ```
 
 Plot both filtered and unfiltered!
 ```{r}
-
+ans1_ff %>% 
+  ggplot(aes(x = time))+
+  geom_line(aes(y=indexvel_all, color = "unfiltered"))+
+  geom_line(aes(y=indexvel_all_f, color = "filter1"))
 ```
 
 ### Acceleration of the index finger in 3D space
 From the 3d-velocity, derive the 3d-acceleration.
 ```{r}
+ans1_ff <- ans1_ff %>% 
+  mutate( indexacc_all = diff(indexvel_all_f)/time)
+ans1_ff$indexacc_all[1] <- 0
 
 ```
 
 Filter!
 ```{r}
-
+ans1_ff <- ans1_ff %>% 
+  mutate( indexacc_all_f = filtfilt(butter(2,.05,type = "low",), indexacc_all))
 ```
 
 Plot both filtered and unfiltered!
 ```{r}
-
+ans1_ff %>% 
+  ggplot(aes(x = time))+
+  geom_line(aes(y=indexacc_all, color = "unfiltered"))+
+  geom_line(aes(y=indexacc_all_f, color = "filter1"))
 ```
 
 
@@ -160,12 +243,24 @@ The goal is to have a column with TRUE and FALSE which indicates whether it is a
 * diff and sign are useful functions (also in combination :))
 ```{r}
 
+ans1_ff <-ans1_ff %>% 
+  mutate(crossoverMin  = ifelse(c(0, diff(sign(indexacc_all_f))) == 2,T,F),
+         crossoverMax  = ifelse(c(0, diff(sign(indexacc_all_f))) == -2,T,F)
+         )
+
+
+
 ```
 
 
 Plot the filtered velocity and add points at the minima and maxima using the acceleration zero crossings from before.
 ```{r}
-
+ans1_ff %>% 
+  ggplot(aes(x=time))+
+  geom_line(aes(y = indexvel_all_f))+
+  geom_point(data = ans1_ff[which(ans1_ff$crossoverMax == T | ans1_ff$crossoverMin == T),],
+             aes(y = indexvel_all_f ))
+            
 ```
 
 
@@ -173,6 +268,17 @@ Correspondingly, plot these velocity minimum and maximum points onto the traject
 Question: What, then, do these points we found tell us about the actual movement, esp. in relation to our task? Which points / parts of the trajectory seem most relevant? 
 ```{r}
 
+ans1_ff %>% 
+  ggplot(aes(x=time))+
+  geom_point(data = ans1_ff[which(ans1_ff$crossoverMax == T | ans1_ff$crossoverMin == T),],
+             aes(y = indexX, color ="x")) +
+  geom_line(aes(y = indexX, color = "x"))+
+  geom_point(data = ans1_ff[which(ans1_ff$crossoverMax == T | ans1_ff$crossoverMin == T),],
+             aes(y = indexY, color ="y")) +
+  geom_line(aes(y = indexY, color = "y")) +
+    geom_point(data = ans1_ff[which(ans1_ff$crossoverMax == T | ans1_ff$crossoverMin == T),],
+             aes(y = indexZ, color ="z")) +
+geom_line(aes(y = indexZ, color = "z"))
 ```
 
 
@@ -183,6 +289,20 @@ Hint:
 * the start of the reaching phase is the velocity minimum that has the highest frame number in the first phase (i.e. trialPhase==1, i.e. right before leaving the starting position)
 * the end of the reaching phase is the velocity minimum that has the smallest frame number in the second phase (i.e. trialPhase==2, i.e. right after having left the start position)
 ```{r}
+# identify reaching phase 
+ ans1_ff %>% 
+  dplyr::filter(trialPhase == 1) %>% 
+  group_by(crossoverMin) %>% 
+  summarize(max(frame)) # reach starts at frame 430
+
+ ans1_ff %>% 
+  dplyr::filter(trialPhase == 2) %>% 
+  group_by(crossoverMin) %>% 
+  summarize(min(frame)) # reach starts at frame ends at 639
+ 
+ reach <- ans1_ff %>% 
+   dplyr::filter(frame < 640) %>% 
+   dplyr::filter(frame > 429) 
 
 ```
 
@@ -191,33 +311,63 @@ Hint:
 Create a plot with only the reach phase as position over time  
 ```{r}
 
+reach %>% 
+  ggplot(aes(x=time))+
+  geom_point(data = reach[which(reach$crossoverMax == T | reach$crossoverMin == T),],
+             aes(y = indexX, color ="x")) +
+  geom_line(aes(y = indexX, color = "x"))+
+  geom_point(data = reach[which(reach$crossoverMax == T | reach$crossoverMin == T),],
+             aes(y = indexY, color ="y")) +
+  geom_line(aes(y = indexY, color = "y")) +
+    geom_point(data = reach[which(reach$crossoverMax == T | reach$crossoverMin == T),],
+             aes(y = indexZ, color ="z")) +
+geom_line(aes(y = indexZ, color = "z"))
+
 ```
 
 #### Determine the movement onset
 ```{r}
+reach %>% 
+  group_by() %>% 
+  summarise(min(time))
 
+#reaching starts at 1.43 seconds
 ```
 
 
 #### Determine the reach duration 
 ```{r}
 
+reach %>% 
+  group_by() %>% 
+  summarise(min(time),max(time), diff = max(time)-min(time))
+# duration is0.69 seconds
 ```
 
 #### Determine peak velocity with the reach phase
 ```{r}
+reach %>% 
+  group_by(crossoverMax) %>% 
+  summarise(max(indexvel_all_f))
 
+# peak velocity is 0.265 centimeters/seconds
 ```
 
 #### Determine max reach height with the reach phase
 ```{r}
+reach %>% 
+  group_by(crossoverMax) %>% 
+  summarise(max(indexZ))
+  
 
+# max reach height is 15.4 centimeters
 ```
 
 #### Determine the thumb-index aperture
 Create a new column with distance between the thumb and index finger.
 ```{r}
-
+reach_tb <- reach %>% 
+  mutate(dist = (indexX+indexY+indexZ) - (thumbX+thumbY+thumbZ))
 ```
 
 #### Determine the maximum thumb-index aperture in the reaching phase
